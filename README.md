@@ -4,6 +4,52 @@ PanelPilot is a conversational Grafana dashboard agent backed by an IDE-first MC
 
 The product and VS Code agent are named **PanelPilot**; the npm package is `panelpilot`. The existing `fhl-grafana` MCP registration, `FHL_*` environment variables, internal CSRF fields and workspace folder name remain unchanged for compatibility. These are technical identifiers, not the product name.
 
+## Use PanelPilot
+
+### Use this repository's SPOONS setup
+
+1. Ask the repository owner for access, then clone and open the repository in VS Code:
+
+	```powershell
+	gh repo clone missedwinter/FHL-PanelPilot
+	cd FHL-PanelPilot
+	code .
+	```
+
+2. Install Node.js 24 or later, the Azure CLI, and the GitHub Copilot extension. Ensure your organization allows Copilot to use workspace MCP servers.
+3. Sign in to the Azure tenant that owns the configured Managed Grafana workspace:
+
+	```powershell
+	az login
+	npm install
+	npm test
+	npm run build
+	```
+
+4. In VS Code, run **MCP: List Servers**, start or restart `fhl-grafana`, and confirm that it is running. The first Grafana request may ask you to complete Azure authentication.
+5. Open Copilot Chat and select **PanelPilot** from the agent picker. Give it the original Grafana dashboard URL and a concrete request, for example:
+
+	```text
+	Add a daily Copilot request-volume trend for WW, split into DA, HVI, and SCD, using the last 7 complete UTC days.
+	```
+
+6. PanelPilot inspects the source, validates a bounded ChangeSet, and opens the review page in your external browser. Open the proposed Grafana link there and verify the real charts, data, variables, and query errors.
+7. Acknowledge and approve the current revision on the local review page. Approval alone does not update the source dashboard. Final application also requires source writes to be enabled and an explicit Apply action or request.
+
+This checkout is preconfigured for the internal SPOONS Grafana workspace. Users need Grafana Viewer access to inspect dashboards and Editor access to publish the shared preview or apply an approved change. The shared `SPOONS-Preview-Only` dashboard holds one candidate at a time, so publishing a preview replaces its previous contents. Source-dashboard writes remain disabled by default.
+
+### Connect another Grafana workspace
+
+Update `.vscode/mcp.json` before starting the MCP server:
+
+- Set `GRAFANA_MCP_URL` to the Azure Managed Grafana MCP endpoint.
+- Set `FHL_PREVIEW_DASHBOARD_URL` to a dedicated, disposable preview dashboard in the same Grafana instance.
+- Set `FHL_ENABLE_PREVIEW_WRITES` to `true` only after explicitly authorizing that preview destination.
+- Keep `FHL_ENABLE_WRITES` set to `false` until final source updates have been separately authorized and tested on a disposable dashboard.
+- Optionally set `FHL_REVIEW_PORT`; it defaults to `4317` and binds only to loopback.
+
+Do not commit tokens or client secrets. PanelPilot uses Microsoft Entra ID through `DefaultAzureCredential` with the `https://dashboard.azure.com/.default` scope. The controlled SPOONS request-trend template and dashboard-creation destination are intentionally environment-specific; adapt their server-side allowlists and tests before using those operations with another workspace.
+
 ## Review-first workflow
 
 Clarify the goal -> agree on a plan -> propose -> validate -> preview -> feedback or approval -> apply -> verify.
