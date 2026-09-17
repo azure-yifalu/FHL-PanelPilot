@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="fhl-csrf" content="__CSRF__" />
+    <title>PanelPilot | Dashboard review</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="/lucide.js" defer></script>
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a href="/" class="brand" aria-label="PanelPilot review home"
+        ><i data-lucide="panels-top-left"></i><strong>PanelPilot</strong
+        ><span>Dashboard review</span></a
+      >
+      <div class="top-actions">
+        <span id="environment" class="badge">Local review</span
+        ><button
+          id="refresh"
+          class="icon-button"
+          title="Refresh reviews"
+          aria-label="Refresh reviews"
+        >
+          <i data-lucide="refresh-cw"></i>
+        </button>
+      </div>
+    </header>
+    <main>
+      <div id="message" role="status" aria-live="polite" hidden></div>
+      <section id="inbox">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">REVIEW QUEUE</p>
+            <h1>Pending decisions</h1>
+          </div>
+          <span id="review-count" class="muted"></span>
+        </div>
+        <div id="review-list" class="review-list"></div>
+        <div id="empty" class="empty" hidden>
+          <i data-lucide="inbox"></i>
+          <h2>No dashboard drafts</h2>
+        </div>
+      </section>
+      <section id="detail" hidden>
+        <a href="/" class="back"><i data-lucide="arrow-left"></i>All reviews</a>
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow" id="revision"></p>
+            <h1 id="title"></h1>
+            <p id="summary" class="summary"></p>
+          </div>
+          <span id="state" class="badge"></span>
+        </div>
+        <div class="metadata">
+          <span id="uid"></span><span id="version"></span
+          ><span id="expires"></span
+          ><span id="change-scope">Queries and data sources unchanged</span>
+        </div>
+        <p id="creation-destination" class="muted" hidden></p>
+        <a id="created-dashboard" class="back" target="_blank" rel="noopener noreferrer" hidden>
+          Open created dashboard
+        </a>
+        <div class="goal-band">
+          <i data-lucide="crosshair"></i>
+          <div>
+            <span class="eyebrow">AGREED GOAL</span>
+            <p id="goal"></p>
+          </div>
+        </div>
+        <div class="preview-heading">
+          <h2 id="preview-heading">Configuration preview</h2>
+          <span id="preview-caption" class="muted"
+            >No live data &middot; Not a Grafana render</span
+          >
+        </div>
+        <section id="live-preview" class="goal-band" hidden>
+          <i data-lucide="chart-no-axes-combined"></i>
+          <div>
+            <div class="preview-heading">
+              <a
+                id="live-before"
+                class="back"
+                target="_blank"
+                rel="noopener noreferrer"
+                ><i data-lucide="external-link"></i>Original dashboard</a
+              >
+              <a
+                id="live-after"
+                class="back"
+                target="_blank"
+                rel="noopener noreferrer"
+                ><i data-lucide="external-link"></i>Proposed dashboard in
+                Grafana</a
+              >
+            </div>
+            <p id="live-context" class="muted"></p>
+            <p id="live-status" class="muted"></p>
+          </div>
+        </section>
+        <div id="configuration-preview" class="comparison">
+          <section class="snapshot">
+            <div class="snapshot-label">
+              <span>BEFORE</span><strong id="before-title"></strong>
+            </div>
+            <div id="before" class="dashboard-grid"></div>
+          </section>
+          <section class="snapshot">
+            <div class="snapshot-label">
+              <span class="candidate-label">PROPOSED</span
+              ><strong id="after-title"></strong>
+            </div>
+            <div id="after" class="dashboard-grid"></div>
+          </section>
+        </div>
+        <div class="review-bottom">
+          <section class="changes">
+            <h2>Exact changes <span id="change-count" class="count"></span></h2>
+            <div id="diff"></div>
+            <details>
+              <summary>Review history</summary>
+              <ol id="history"></ol>
+            </details>
+            <details>
+              <summary>Draft identity</summary>
+              <p id="identity" class="code"></p>
+            </details>
+          </section>
+          <section class="decision">
+            <h2>Decision</h2>
+            <p id="validation" class="validation"></p>
+            <div id="feedback-history"></div>
+            <form id="feedback-form">
+              <label for="feedback">Requested changes</label
+              ><textarea
+                id="feedback"
+                rows="3"
+                maxlength="4000"
+                placeholder="Make the latency panel wider..."
+              ></textarea
+              ><button id="send-feedback" type="submit" class="secondary">
+                <i data-lucide="message-square"></i>Request changes
+              </button>
+            </form>
+            <div class="approval">
+              <label class="checkbox"
+                ><input id="acknowledge" type="checkbox" /><span
+                  id="acknowledge-label"
+                  >I reviewed this version and its exact changes.</span
+                ></label
+              ><button id="approve" class="primary">
+                <i data-lucide="check"></i>Approve this version</button
+              ><button id="apply" class="primary" hidden>
+                <i data-lucide="upload"></i>Apply approved version
+              </button>
+              <p id="write-status" class="muted"></p>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+    <footer>
+      <span>PanelPilot / REVIEW WORKSPACE</span
+      ><span>Presentation changes only</span>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "servers": {
+    "fhl-grafana": {
+      "type": "stdio",
+      "command": "npm",
+      "args": ["run", "dev", "--silent"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "GRAFANA_MCP_URL": "https://migreports-grafana2-a4e3gmemgwh5hday.eus.grafana.azure.com/api/azure-mcp",
+        "FHL_PREVIEW_DASHBOARD_URL": "https://migreports-grafana2-a4e3gmemgwh5hday.eus.grafana.azure.com/d/yikhfbz/spoons-preview-only?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=WW&var-connectorType=All",
+        "FHL_ENABLE_PREVIEW_WRITES": "true",
+        "FHL_ENABLE_WRITES": "false"
+      }
+    }
+  }
+}
