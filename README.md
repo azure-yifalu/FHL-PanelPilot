@@ -11,7 +11,7 @@ The product and VS Code agent are named **PanelPilot**; the npm package is `pane
 1. Ask the repository owner for access, then clone and open the repository in VS Code:
 
 	```powershell
-	gh repo clone missedwinter/FHL-PanelPilot
+	gh repo clone azure-yifalu/FHL-PanelPilot
 	cd FHL-PanelPilot
 	code .
 	```
