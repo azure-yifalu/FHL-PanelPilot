@@ -7,6 +7,7 @@ export type GrafanaPreview = {
   dashboardUid: string;
   previewTitle: string;
   candidateDigest: string;
+  previewContentDigest: string;
   snapshotDigest: string;
   version: number;
   url: string;
@@ -106,6 +107,18 @@ export class GrafanaPreviewRenderer implements PreviewRenderer {
     };
   }
 
+  private mappedDashboard(change: ChangeSet, previous: Dashboard): Dashboard {
+    const candidate = structuredClone(change.candidate);
+    return {
+      ...(change.creation ? structuredClone(previous) : {}),
+      ...candidate,
+      id: previous.id,
+      uid: this.dashboardUid,
+      version: previous.version,
+      title: previous.title,
+    };
+  }
+
   async publish(change: ChangeSet): Promise<GrafanaPreview> {
     if (change.dashboardUid === this.dashboardUid)
       throw new Error(
@@ -115,19 +128,15 @@ export class GrafanaPreviewRenderer implements PreviewRenderer {
     const previous = await this.gateway.readDashboard(this.dashboardUid);
     if (previous.uid !== this.dashboardUid)
       throw new Error("Preview destination identity mismatch.");
-    const mapped: Dashboard = {
-      ...structuredClone(change.candidate),
-      id: previous.id,
-      uid: this.dashboardUid,
-      version: previous.version,
-      title: previous.title,
-    };
+    const mapped = this.mappedDashboard(change, previous);
+    const previewContentDigest = contentDigest(mapped);
     if (contentDigest(previous) === contentDigest(mapped)) {
       return {
         ...urls,
         dashboardUid: this.dashboardUid,
         previewTitle: previous.title,
         candidateDigest: change.digest,
+        previewContentDigest,
         snapshotDigest: digest(previous),
         version: previous.version,
         publishedAt: new Date().toISOString(),
@@ -152,6 +161,7 @@ export class GrafanaPreviewRenderer implements PreviewRenderer {
       dashboardUid: this.dashboardUid,
       previewTitle: previous.title,
       candidateDigest: change.digest,
+      previewContentDigest,
       snapshotDigest: digest(observed),
       version: observed.version,
       publishedAt: new Date().toISOString(),
@@ -169,7 +179,7 @@ export class GrafanaPreviewRenderer implements PreviewRenderer {
     if (
       digest(current) !== artifact.snapshotDigest ||
       current.title !== artifact.previewTitle ||
-      contentDigest(current) !== contentDigest({ ...change.candidate, title: artifact.previewTitle })
+      contentDigest(current) !== artifact.previewContentDigest
     ) {
       throw new Error(
         "The preview dashboard was changed or replaced. Create and review a new preview before approval or submission.",

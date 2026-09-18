@@ -26,7 +26,17 @@ function setup(writesEnabled = true) {
   let now = Date.parse("2026-09-17T12:00:00Z");
   const dashboards: Record<string, Dashboard> = {
     [donor.uid]: structuredClone(donor),
-    preview: { id: 20, uid: "preview", version: 1, title: "Preview only", panels: [] },
+    preview: {
+      id: 20,
+      uid: "preview",
+      version: 1,
+      title: "Preview only",
+      schemaVersion: 42,
+      annotations: { list: [{ name: "Annotations & Alerts" }] },
+      templating: { list: [{ name: "environment" }] },
+      timepicker: {},
+      panels: [],
+    },
   };
   const gateway = {
     readDashboard: vi.fn(async (uid: string) => {
@@ -84,6 +94,13 @@ describe("new dashboards in the fixed SPOONS folder", () => {
     expect(new URL(preview.livePreview!.url).searchParams.get("viewPanel")).toBe("1");
     expect(gateway.createDashboard).not.toHaveBeenCalled();
     expect(gateway.updateDashboard.mock.calls.map(([dashboard]) => dashboard.uid)).toEqual(["preview"]);
+    expect(gateway.updateDashboard.mock.calls[0][0]).toMatchObject({
+      schemaVersion: 42,
+      annotations: { list: [{ name: "Annotations & Alerts" }] },
+      templating: { list: [{ name: "environment" }] },
+      timepicker: {},
+      panels: [{ id: 1 }],
+    });
     await expect(workflow.apply(draft.id, "APPLY someone-else")).rejects.toThrow("confirmation");
     const applied = await workflow.apply(draft.id, `APPLY ${draft.id}`);
     expect(applied.state).toBe("applied");
