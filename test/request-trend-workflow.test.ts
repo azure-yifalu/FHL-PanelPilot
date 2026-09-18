@@ -62,7 +62,6 @@ it.each([
   let now = Date.parse("2026-09-17T23:59:00Z");
   const workflow = new ReviewWorkflow(
     gateway,
-    true,
     () => now,
     1800000,
     renderer,

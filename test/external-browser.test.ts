@@ -10,7 +10,7 @@ async function setup() {
   const workflow = new ReviewWorkflow({
     readDashboard: async () => ({ uid: "test", title: "Before", version: 1, panels: [] }),
     updateDashboard: async () => { throw new Error("Must not write"); },
-  }, false);
+  });
   const draft = await workflow.propose({ dashboardUid: "test", goal: "Clarify", summary: "Rename", operations: [{ op: "replace", path: "$.title", value: "After" }] });
   return { workflow, draft };
 }

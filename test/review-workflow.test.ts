@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ReviewWorkflow } from "../src/review-workflow.js";
 import type { Dashboard } from "../src/policy.js";
 
-function setup(enabled = true) {
+function setup() {
   let current: Dashboard = {
     uid: "test",
     title: "Before",
@@ -19,7 +19,7 @@ function setup(enabled = true) {
       };
     }),
   };
-  const workflow = new ReviewWorkflow(gateway, enabled, () => now, 1000);
+  const workflow = new ReviewWorkflow(gateway, () => now, 1000);
   const propose = (previousChangeSetId?: string) =>
     workflow.propose({
       dashboardUid: "test",
@@ -89,15 +89,13 @@ describe("review workflow", () => {
     expect(() => workflow.approve(first.id, first.digest)).toThrow();
     expect(() => workflow.approve(next.id, next.digest)).toThrow("Open");
   });
-  it.each(["disabled", "expired", "conflict"])(
+  it.each(["unapproved", "expired", "conflict"])(
     "blocks %s writes",
     async (kind) => {
-      const { workflow, gateway, propose, advance, changeRemote } = setup(
-        kind !== "disabled",
-      );
+      const { workflow, gateway, propose, advance, changeRemote } = setup();
       const draft = await propose();
       workflow.markViewed(draft.id, draft.digest);
-      workflow.approve(draft.id, draft.digest);
+      if (kind !== "unapproved") workflow.approve(draft.id, draft.digest);
       if (kind === "expired") advance();
       if (kind === "conflict") changeRemote();
       await expect(

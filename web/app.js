@@ -46,15 +46,20 @@ function controls() {
     ["awaiting_review", "approved", "changes_requested"].includes(
       current.state,
     );
-  element("approve").disabled =
+  const canApprove =
     busy ||
     !current ||
     current.state !== "awaiting_review" ||
     !current.previewViewed ||
     current.validationErrors.length > 0 ||
     !element("acknowledge").checked;
-  element("approve").hidden =
-    current?.state === "approved" || current?.state === "applied";
+  element("approve-and-apply").hidden =
+    current?.state !== "awaiting_review";
+  element("approve-and-apply").disabled =
+    canApprove || !current?.writesEnabled;
+  element("approve-and-apply").textContent = current?.creation
+    ? "Approve and create dashboard"
+    : "Approve and apply";
   element("apply").hidden = current?.state !== "approved";
   element("apply").textContent = current?.creation
     ? "Create approved dashboard"
@@ -361,7 +366,7 @@ async function action(name, extra = {}) {
     renderReview(review);
     if (name === "feedback") element("feedback").value = "";
     message(
-      name === "apply"
+      name === "apply" || name === "approve-and-apply"
         ? "Applied and verified."
         : name === "approve"
           ? "This draft version is approved. No changes have been submitted yet."
@@ -400,7 +405,9 @@ element("acknowledge").addEventListener("change", async () => {
     controls();
   }
 });
-element("approve").addEventListener("click", () => action("approve"));
+element("approve-and-apply").addEventListener("click", () =>
+  action("approve-and-apply"),
+);
 element("apply").addEventListener("click", () =>
   action("apply", { confirmation: `APPLY ${current.id}` }),
 );

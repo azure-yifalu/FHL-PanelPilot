@@ -33,7 +33,6 @@ function setup() {
   );
   const workflow = new ReviewWorkflow(
     gateway,
-    true,
     Date.now,
     1800000,
     renderer,

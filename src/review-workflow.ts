@@ -69,6 +69,7 @@ function presentation(dashboard: Dashboard) {
   return {
     uid: dashboard.uid,
     version: dashboard.version,
+    schemaVersion: dashboard.schemaVersion,
     title: dashboard.title,
     panels: dashboard.panels.map((panel, index) => ({
       id: panel.id,
@@ -103,7 +104,6 @@ export class ReviewWorkflow {
 
   constructor(
     private readonly gateway: DashboardGateway,
-    readonly writesEnabled: boolean,
     private readonly now: () => number = Date.now,
     private readonly ttlMs = 30 * 60 * 1000,
     private readonly renderer?: PreviewRenderer,
@@ -175,11 +175,18 @@ export class ReviewWorkflow {
     const source = await this.gateway.readDashboard(sourceUid);
     if (source.uid !== sourceUid)
       throw new Error("Upstream returned a different dashboard.");
+    if (
+      input.creation &&
+      (!Number.isInteger(source.schemaVersion) ||
+        (source.schemaVersion as number) < 0)
+    )
+      throw new Error("The binding dashboard has no valid schemaVersion.");
     const before: Dashboard = input.creation
       ? {
           id: null,
           uid: input.dashboardUid,
           version: 0,
+          schemaVersion: source.schemaVersion,
           title: input.creation.title,
           panels: [],
         }
@@ -379,6 +386,11 @@ export class ReviewWorkflow {
     return this.recordApproval(id, expectedDigest);
   }
 
+  async approveAndApply(id: string, expectedDigest: string) {
+    await this.approveReviewed(id, expectedDigest);
+    return this.apply(id, `APPLY ${id}`);
+  }
+
   view(id: string) {
     const review = this.get(id);
     const change = review.change;
@@ -414,8 +426,13 @@ export class ReviewWorkflow {
       events: review.events,
       error: review.error,
       previewViewed: review.viewedDigest === change.digest,
-      writesEnabled: this.writesEnabled,
       validationErrors: validateChangeSet(change),
+      writesEnabled: change.creation
+        ? Boolean(
+            this.gateway.createDashboard &&
+              this.gateway.readCreatedDashboard,
+          )
+        : typeof this.gateway.updateDashboard === "function",
       previewKind: this.renderer ? "grafana-dashboard" : "configuration-only",
       livePreview: review.livePreview,
       risk: change.requestTrend
@@ -497,10 +514,6 @@ export class ReviewWorkflow {
 
   async apply(id: string, confirmation: string) {
     const review = this.get(id);
-    if (!this.writesEnabled)
-      throw new Error(
-        "Dashboard writes are disabled. Restart with FHL_ENABLE_WRITES=true, then create and review a fresh draft.",
-      );
     if (confirmation !== `APPLY ${id}`)
       throw new Error("Explicit confirmation does not match the draft ID.");
     this.checkDigest(review, review.change.digest);

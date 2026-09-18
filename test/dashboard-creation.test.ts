@@ -11,6 +11,7 @@ const donor: Dashboard = {
   id: 10,
   uid: destination.bindingDashboardUid,
   version: 4,
+  schemaVersion: 42,
   title: "SPOONS Overview v2",
   templating: { list: [{ name: "do-not-copy" }] },
   panels: [{
@@ -22,7 +23,7 @@ const donor: Dashboard = {
   }],
 };
 
-function setup(writesEnabled = true) {
+function setup() {
   let now = Date.parse("2026-09-17T12:00:00Z");
   const dashboards: Record<string, Dashboard> = {
     [donor.uid]: structuredClone(donor),
@@ -60,7 +61,7 @@ function setup(writesEnabled = true) {
     `${destination.origin}/d/preview`,
     `${destination.origin}/api/azure-mcp`,
   );
-  const workflow = new ReviewWorkflow(gateway, writesEnabled, () => now, 1800000, renderer);
+  const workflow = new ReviewWorkflow(gateway, () => now, 1800000, renderer);
   const approve = async (draft: { id: string; digest: string }) => {
     await workflow.preparePreview(draft.id);
     workflow.markViewed(draft.id, draft.digest);
@@ -80,7 +81,9 @@ describe("new dashboards in the fixed SPOONS folder", () => {
       bindingDashboardUid: donor.uid,
     });
     expect(draft.before.panels).toEqual([]);
+    expect(draft.before.schemaVersion).toBe(42);
     expect(draft.after.panels).toHaveLength(1);
+    expect(draft.after.schemaVersion).toBe(42);
     expect(draft.after.panels[0]).toMatchObject({ id: 1, gridPos: { x: 0, y: 0, w: 24, h: 10 } });
     expect(draft.requestTrend?.days).toBe(7);
     expect(draft.diff.every((entry) => entry.before === null)).toBe(true);
@@ -90,6 +93,7 @@ describe("new dashboards in the fixed SPOONS folder", () => {
     await expect(workflow.apply(draft.id, `APPLY ${draft.id}`)).rejects.toThrow("approved");
     await approve(draft);
     const preview = workflow.view(draft.id);
+    expect(preview.writesEnabled).toBe(true);
     expect(preview.livePreview?.beforeUrl).toBe(destination.folderUrl);
     expect(new URL(preview.livePreview!.url).searchParams.get("viewPanel")).toBe("1");
     expect(gateway.createDashboard).not.toHaveBeenCalled();
@@ -135,12 +139,12 @@ describe("new dashboards in the fixed SPOONS folder", () => {
     expect(gateway.createDashboard).not.toHaveBeenCalled();
   });
 
-  it.each(["disabled", "donor drift", "preview drift", "expired", "feedback"] as const)(
+  it.each(["unapproved", "donor drift", "preview drift", "expired", "feedback"] as const)(
     "blocks creation when %s",
     async (reason) => {
-      const { workflow, approve, dashboards, gateway, advance } = setup(reason !== "disabled");
+      const { workflow, approve, dashboards, gateway, advance } = setup();
       const draft = await workflow.proposeRequestTrend({ environment: "WW" });
-      await approve(draft);
+      if (reason !== "unapproved") await approve(draft);
       if (reason === "donor drift") dashboards[donor.uid].version++;
       if (reason === "preview drift") dashboards.preview.version++;
       if (reason === "expired") advance(1800001);
@@ -177,7 +181,7 @@ describe("new dashboards in the fixed SPOONS folder", () => {
 
   it("binds the destination and donor snapshot to approval and rejects scope changes", () => {
     const change = createChangeSet({
-      before: { id: null, uid: "new-00000000-0000-4000-8000-000000000000", version: 0, title: "New", panels: [] },
+      before: { id: null, uid: "new-00000000-0000-4000-8000-000000000000", version: 0, schemaVersion: 42, title: "New", panels: [] },
       goal: "New request chart",
       summary: "Create in SPOONS",
       operations: [],
@@ -244,7 +248,7 @@ describe("new dashboards in the fixed SPOONS folder", () => {
   it("blocks new-dashboard preview publication to another Grafana instance", async () => {
     const { gateway } = setup();
     const renderer = new GrafanaPreviewRenderer(gateway, "https://other.example/d/preview", "https://other.example/api/azure-mcp");
-    const workflow = new ReviewWorkflow(gateway, true, Date.now, 1800000, renderer);
+    const workflow = new ReviewWorkflow(gateway, Date.now, 1800000, renderer);
     const draft = await workflow.proposeRequestTrend({ environment: "WW" });
     await expect(workflow.preparePreview(draft.id)).rejects.toThrow("SPOONS");
     expect(gateway.updateDashboard).not.toHaveBeenCalled();

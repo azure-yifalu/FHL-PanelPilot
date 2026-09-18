@@ -67,11 +67,14 @@ describe("Grafana update contract", () => {
   it("treats MCP isError as a failure", async () => {
     const client = new GrafanaMcpClient();
     Object.assign(client, {
-      client: { callTool: async () => ({ isError: true, content: [] }) },
+      client: { callTool: async () => ({
+        isError: true,
+        content: [{ type: "text", text: "folder access denied" }],
+      }) },
     });
     await expect(
       client.callTool("amgmcp_dashboard_update", {}),
-    ).rejects.toThrow("failed");
+    ).rejects.toThrow("failed: folder access denied");
   });
   it("uses allowlisted create mode with no existing UID, no overwrite and the fixed folder", async () => {
     vi.stubEnv("GRAFANA_MCP_URL", `${destination.origin}/api/azure-mcp`);

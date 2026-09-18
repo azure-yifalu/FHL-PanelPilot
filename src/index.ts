@@ -29,7 +29,6 @@ async function main() {
     : undefined;
   const workflow = new ReviewWorkflow(
     grafana,
-    demo || process.env.FHL_ENABLE_WRITES === "true",
     Date.now,
     30 * 60 * 1000,
     renderer,

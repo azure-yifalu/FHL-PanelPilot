@@ -23,6 +23,17 @@ function jsonPayload(result: Awaited<ReturnType<GrafanaMcpClient["callTool"]>>):
   return JSON.parse(text.text);
 }
 
+function errorDetail(result: Awaited<ReturnType<Client["callTool"]>>): string | undefined {
+  const detail = Array.isArray(result.content)
+    ? result.content
+        .filter((block) => block.type === "text")
+        .map((block) => block.text)
+        .join("\n")
+        .trim()
+    : "";
+  return detail ? detail.slice(0, 2_000) : undefined;
+}
+
 export class GrafanaMcpClient {
   private client?: Client;
 
@@ -111,10 +122,12 @@ export class GrafanaMcpClient {
 
     const client = await this.getClient();
     const result = await client.callTool({ name, arguments: args });
-    if (result.isError)
+    if (result.isError) {
+      const detail = errorDetail(result);
       throw new Error(
-        `Grafana tool ${name} failed. Inspect the dashboard before retrying.`,
+        `Grafana tool ${name} failed${detail ? `: ${detail}` : "."} Inspect the dashboard before retrying.`,
       );
+    }
     return result;
   }
 

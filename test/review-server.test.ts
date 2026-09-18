@@ -9,19 +9,19 @@ afterEach(async () => {
 });
 
 async function setup() {
+  let current = {
+    uid: "test",
+    title: "Before",
+    version: 1,
+    panels: [],
+  };
   const workflow = new ReviewWorkflow(
     {
-      readDashboard: async () => ({
-        uid: "test",
-        title: "Before",
-        version: 1,
-        panels: [],
-      }),
-      updateDashboard: async () => {
-        throw new Error("Must not write");
+      readDashboard: async () => structuredClone(current),
+      updateDashboard: async (dashboard) => {
+        current = { ...structuredClone(dashboard), version: dashboard.version + 1 };
       },
     },
-    false,
   );
   const draft = await workflow.propose({
     dashboardUid: "test",
@@ -60,9 +60,15 @@ describe("local review HTTP boundary", () => {
         expect(html).toContain("<title>PanelPilot | Dashboard review</title>");
         expect(html).toContain('aria-label="PanelPilot review home"');
         expect(html).toMatch(/<strong>PanelPilot<\/strong\s*>/);
+        expect(html).not.toContain("Approve this version");
+        expect(html).toContain("Approve and apply");
         expect(html).not.toContain("FHL / REVIEW WORKSPACE");
       }
     }
+  });
+  it("reports write capability to enable guarded review actions", async () => {
+    const { workflow, draft } = await setup();
+    expect(workflow.view(draft.id).writesEnabled).toBe(true);
   });
   it("rejects missing session headers, foreign origins and rebound hosts", async () => {
     const { server, headers } = await setup();
@@ -88,19 +94,30 @@ describe("local review HTTP boundary", () => {
     });
     expect(status).toBe(403);
   });
-  it("requires viewed state and keeps writes disabled after approval", async () => {
+  it("requires viewed state and applies only after approval", async () => {
     const { post, workflow, draft } = await setup();
     expect((await post("approve")).status).toBe(400);
     expect((await post("viewed")).status).toBe(200);
     expect((await post("approve")).status).toBe(200);
     expect(
       (await post("apply", { confirmation: `APPLY ${draft.id}` })).status,
-    ).toBe(400);
-    expect(workflow.view(draft.id).state).toBe("approved");
+    ).toBe(200);
+    expect(workflow.view(draft.id).state).toBe("applied");
     expect(
       (await post("feedback", { text: "Change the title again" })).status,
-    ).toBe(200);
-    expect(workflow.view(draft.id).state).toBe("changes_requested");
+    ).toBe(400);
+  });
+  it("approves and applies through one explicit review action", async () => {
+    const { post, workflow, draft } = await setup();
+    expect((await post("approve-and-apply")).status).toBe(400);
+    expect((await post("viewed")).status).toBe(200);
+    expect((await post("approve-and-apply")).status).toBe(200);
+    expect(workflow.view(draft.id).state).toBe("applied");
+    const actions = workflow.view(draft.id).events.map((event) => event.action);
+    expect(actions).toEqual(
+      expect.arrayContaining(["approved in review page", "apply started"]),
+    );
+    expect(actions).toContainEqual(expect.stringMatching(/^verified dashboard version \d+$/));
   });
   it("rejects stale digests and arbitrary request fields", async () => {
     const { post } = await setup();

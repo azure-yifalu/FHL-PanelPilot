@@ -100,7 +100,7 @@ export async function startReviewServer(
         return;
       }
       const match =
-        /^\/api\/reviews\/([a-f0-9-]{36})(?:\/(viewed|approve|feedback|apply))?$/.exec(
+        /^\/api\/reviews\/([a-f0-9-]{36})(?:\/(viewed|approve|approve-and-apply|feedback|apply))?$/.exec(
           pathname,
         );
       if (match && request.method === "GET" && !match[2]) {
@@ -129,6 +129,9 @@ export async function startReviewServer(
             break;
           case "approve":
             result = await workflow.approveReviewed(id, input.digest);
+            break;
+          case "approve-and-apply":
+            result = await workflow.approveAndApply(id, input.digest);
             break;
           case "feedback":
             result = workflow.requestChanges(

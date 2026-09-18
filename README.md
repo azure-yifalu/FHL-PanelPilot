@@ -34,9 +34,9 @@ The product and VS Code agent are named **PanelPilot**; the npm package is `pane
 	```
 
 6. PanelPilot inspects the source, validates a bounded ChangeSet, and opens the review page in your external browser. Open the proposed Grafana link there and verify the real charts, data, variables, and query errors.
-7. Acknowledge and approve the current revision on the local review page. Approval alone does not update the source dashboard. Final application also requires source writes to be enabled and an explicit Apply action or request.
+7. Acknowledge and approve the current revision on the local review page. Approval alone does not update the source dashboard; an explicit Apply action or request submits the approved candidate.
 
-This checkout is preconfigured for the internal SPOONS Grafana workspace. Users need Grafana Viewer access to inspect dashboards and Editor access to publish the shared preview or apply an approved change. The shared `SPOONS-Preview-Only` dashboard holds one candidate at a time, so publishing a preview replaces its previous contents. Source-dashboard writes remain disabled by default.
+This checkout is preconfigured for the internal SPOONS Grafana workspace. Users need Grafana Viewer access to inspect dashboards and Editor access to publish the shared preview or apply an approved change. The shared `SPOONS-Preview-Only` dashboard holds one candidate at a time, so publishing a preview replaces its previous contents. Final writes remain gated by review approval and a separate Apply action.
 
 ### Connect another Grafana workspace
 
@@ -45,7 +45,6 @@ Update `.vscode/mcp.json` before starting the MCP server:
 - Set `GRAFANA_MCP_URL` to the Azure Managed Grafana MCP endpoint.
 - Set `FHL_PREVIEW_DASHBOARD_URL` to a dedicated, disposable preview dashboard in the same Grafana instance.
 - Set `FHL_ENABLE_PREVIEW_WRITES` to `true` only after explicitly authorizing that preview destination.
-- Keep `FHL_ENABLE_WRITES` set to `false` until final source updates have been separately authorized and tested on a disposable dashboard.
 - Optionally set `FHL_REVIEW_PORT`; it defaults to `4317` and binds only to loopback.
 
 Do not commit tokens or client secrets. PanelPilot uses Microsoft Entra ID through `DefaultAzureCredential` with the `https://dashboard.azure.com/.default` scope. The controlled SPOONS request-trend template and dashboard-creation destination are intentionally environment-specific; adapt their server-side allowlists and tests before using those operations with another workspace.
@@ -68,7 +67,7 @@ When the customer has not provided a target dashboard link, propose a **new dash
 
 For the controlled daily request trend, omit `dashboardUid` and `sourcePanelId` from `grafana_dashboard_propose_request_trend`; optionally pass `dashboardTitle`. The server reads only the data-source binding from SPOONS Overview v2 (`yix8pjx`), panel `5`, and builds an empty, unsaved baseline plus the single requested chart. It does not copy the donor's panels, queries, variables or layout. The default 7-day range and custom complete-UTC-day ranges apply unchanged. Other arbitrary chart/query generation remains unsupported.
 
-Proposal is read-only. Preview publication still writes only the dedicated preview dashboard, not the new target. The review page identifies the new-dashboard operation and folder and links to the **destination folder**, not a nonexistent original. Approval binds the candidate, folder and donor snapshot. Final Apply requires `FHL_ENABLE_WRITES=true`, explicit user approval and submission permission; the setting remains disabled in the checked-in configuration. It rechecks the donor snapshot and preview, uses the existing allowlisted `amgmcp_dashboard_update` create mode with no UID, `id: null`, version `0` and `overwrite: false`, and never updates or moves an existing target. A title conflict fails instead of overwriting.
+Proposal is read-only. Preview publication still writes only the dedicated preview dashboard, not the new target. The review page identifies the new-dashboard operation and folder and links to the **destination folder**, not a nonexistent original. Approval binds the candidate, folder and donor snapshot. Final Apply requires explicit user approval and a separate submission action. It rechecks the donor snapshot and preview, uses the existing allowlisted `amgmcp_dashboard_update` create mode with no UID, `id: null`, version `0` and `overwrite: false`, and never updates or moves an existing target. A title conflict fails instead of overwriting.
 
 Creation reads back the generated UID, full content and folder metadata. Only a matching result is marked applied; the MCP result and review page then expose `createdDashboard.url`. Uncertain write/read-back failures consume approval and cannot be automatically retried. The draft's `new-*` UID is only a local review identity, never an existing Grafana UID. To revise before creation, omit `dashboardUid` and pass `previousChangeSetId`; this retains the draft's title and frozen dates unless explicitly changed. To recover a missing new-draft ID, call `grafana_dashboard_list_changes` without a dashboard UID. Do not restart to recover IDs. The offline demo continues to support its existing in-memory dashboard workflow only; verified new-dashboard creation uses the live gateway.
 
@@ -80,7 +79,6 @@ Configuration in `.vscode/mcp.json`:
 
 - `FHL_PREVIEW_DASHBOARD_URL`: fixed HTTPS destination in the same origin as `GRAFANA_MCP_URL`; callers cannot supply another destination.
 - `FHL_ENABLE_PREVIEW_WRITES=true`: permits publication to that destination only, based on the user's explicit preview authorization.
-- `FHL_ENABLE_WRITES=false`: keeps final source-dashboard writes disabled independently.
 
 Provide the **original dashboard URL** when editing an existing dashboard; without a target link, use the new-dashboard flow above. A proposal reads its source or binding donor without writing. The preview tool then publishes its candidate to the dedicated UID, retaining the destination's database ID, title and version, and verifies the saved content. The preserved title is bound to the preview artifact; external title changes still invalidate the snapshot. For edits, the candidate for final submission retains the original source identity/version and its proposed title. New dashboards receive a fresh Grafana UID on approved creation. The preview UID cannot also be the source.
 
@@ -126,7 +124,7 @@ npm run build
 
 Open this folder in VS Code, restart `fhl-grafana` from **MCP: List Servers** to load the new tool schemas, and select **PanelPilot** in Copilot Chat. The first Grafana call can prompt for Entra authentication through the available Azure credential chain. The MCP process also hosts the review page; each preview tool result contains its URL.
 
-The checked-in MCP configuration points to the SPOONS Grafana workspace, enables only the explicitly authorized dedicated preview writes, and keeps source writes disabled. For a controlled final-write test, change `FHL_ENABLE_WRITES` to `true`, restart the MCP server, and use a disposable source dashboard copy. Create and approve a fresh draft after restarting. `FHL_REVIEW_PORT` defaults to 4317; an occupied port falls back to an OS-assigned port. Review data and approval sessions never bind to non-loopback interfaces.
+The checked-in MCP configuration points to the SPOONS Grafana workspace and enables the explicitly authorized dedicated preview writes. Final writes require a viewed, valid, unexpired approval plus a separate Apply action; preview and source snapshots are revalidated immediately before submission. Use a disposable source dashboard copy for integration testing. `FHL_REVIEW_PORT` defaults to 4317; an occupied port falls back to an OS-assigned port. Review data and approval sessions never bind to non-loopback interfaces.
 
 ## Supported changes
 

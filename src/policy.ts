@@ -287,7 +287,14 @@ function parseCreation(
     before.version !== 0 ||
     !/^new-[a-f0-9-]{36}$/.test(before.uid) ||
     before.panels.length !== 0 ||
-    Object.keys(before).some((key) => !["id", "uid", "version", "title", "panels"].includes(key))
+    !Number.isInteger(before.schemaVersion) ||
+    before.schemaVersion !== creation.bindingSource.schemaVersion ||
+    Object.keys(before).some(
+      (key) =>
+        !["id", "uid", "version", "schemaVersion", "title", "panels"].includes(
+          key,
+        ),
+    )
   )
     throw new Error("New-dashboard drafts require an empty, unsaved baseline.");
   z.string().trim().min(1).max(200).parse(before.title);

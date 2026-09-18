@@ -22,7 +22,7 @@ it("keeps large-dashboard draft responses small and recovers IDs without file to
     readDashboard: vi.fn(async () => structuredClone(dashboard)),
     updateDashboard: vi.fn(async () => {}),
   };
-  const workflow = new ReviewWorkflow(gateway, true);
+  const workflow = new ReviewWorkflow(gateway);
   const server = createGatewayServer(
     { listDashboardTools: vi.fn(async () => []), callTool: vi.fn() },
     workflow,
@@ -115,7 +115,6 @@ it("accepts custom complete-day periods through MCP and rejects invalid periods 
   };
   const workflow = new ReviewWorkflow(
     gateway,
-    true,
     () => Date.parse("2026-09-17T12:00:00Z"),
   );
   const server = createGatewayServer(

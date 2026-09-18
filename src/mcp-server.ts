@@ -50,7 +50,6 @@ export function createGatewayServer(
       previewKind: review.previewKind,
       livePreview: review.livePreview,
       previewViewed: review.previewViewed,
-      writesEnabled: review.writesEnabled,
       risk: review.risk,
       requestTrend: review.requestTrend,
       error: review.error === undefined ? undefined : summaryText(review.error),
@@ -290,7 +289,7 @@ export function createGatewayServer(
     "grafana_dashboard_apply_change",
     {
       description:
-        "Apply only a draft already approved by the user in the review page. Requires writes enabled, matching confirmation, fresh snapshot and unexpired approval. For operation=create, creates a NEW dashboard in the fixed SPOONS folder with no existing UID and overwrite=false, then verifies content and folder and returns createdDashboard.url. For updates, changes only the approved source. Never retries uncertain failures automatically.",
+        "Apply only a draft already approved by the user in the review page. Requires matching confirmation, a verified preview, a fresh source snapshot and unexpired approval. For operation=create, creates a NEW dashboard in the fixed SPOONS folder with no existing UID and overwrite=false, then verifies content and folder and returns createdDashboard.url. For updates, changes only the approved source. Never retries uncertain failures automatically.",
       inputSchema: z
         .object({
           changeSetId: z.string().uuid(),
